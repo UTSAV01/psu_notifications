@@ -1,0 +1,28 @@
+{
+  "functions": {
+    "source": "functions"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "psu-tracker-app",
+          "appId": "1:159418645512:android:9938193b934be03fe6a5bd",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "psu-tracker-app",
+          "configurations": {
+            "android": "1:159418645512:android:9938193b934be03fe6a5bd",
+            "ios": "1:159418645512:ios:f787d49bbbe6554be6a5bd",
+            "macos": "1:159418645512:ios:f787d49bbbe6554be6a5bd",
+            "web": "1:159418645512:web:93f78ca7ad0b74ffe6a5bd",
+            "windows": "1:159418645512:web:250dcec7fe4be6c9e6a5bd"
+          }
+        }
+      }
+    }
+  }
+}

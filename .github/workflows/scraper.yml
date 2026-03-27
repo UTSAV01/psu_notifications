@@ -1,0 +1,43 @@
+name: PSU Scraper Automation
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every day
+    - cron: '0 0 * * *'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install Dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Decode Firebase Service Account Key
+      env:
+        FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+      run: |
+        # Creates the JSON securely inside the runner just before execution
+        echo "$FIREBASE_SERVICE_ACCOUNT_BASE64" | base64 --decode > backend/serviceAccountKey.json
+
+    - name: Execute Scraper
+      run: |
+        cd backend
+        # Ensure the backend knows looking for the decoded key explicitly
+        export FIREBASE_CREDENTIALS_PATH="serviceAccountKey.json"
+        export EXCEL_PATH="PSU Recruitment Data and Link Generation.xlsx"
+        python scraper.py
