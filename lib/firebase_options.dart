@@ -41,7 +41,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBh35bgruQLxRUK9m8guYMurCE19cIdoHs',
+    apiKey: 'YOUR_API_KEY',
     appId: '1:159418645512:web:93f78ca7ad0b74ffe6a5bd',
     messagingSenderId: '159418645512',
     projectId: 'psu-tracker-app',
@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDNrroPuDk0D-65SQiIkhlma2w6-ZCMMmU',
+    apiKey: 'YOUR_API_KEY',
     appId: '1:159418645512:android:9938193b934be03fe6a5bd',
     messagingSenderId: '159418645512',
     projectId: 'psu-tracker-app',
