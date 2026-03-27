@@ -80,8 +80,8 @@ def fetch_latest_psu_jobs():
             except Exception as e:
                 logger.warning(f"Failed to scrape {link} for {psu_name}. Defaulting to generic role. Error: {e}")
 
-            # Generate deterministic ID using SHA-256 hash of PSU Name and Link
-            unique_string = f"{str(psu_name).strip()}_{str(link).strip()}"
+            # Generate deterministic ID using SHA-256 hash of PSU Name, Link, and Role
+            unique_string = f"{str(psu_name).strip()}_{str(link).strip()}_{str(role_title).strip()}"
             job_id = hashlib.sha256(unique_string.encode('utf-8')).hexdigest()
 
             jobs.append({

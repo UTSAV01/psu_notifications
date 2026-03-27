@@ -16,8 +16,10 @@ class PsuCard extends StatelessWidget {
       child: InkWell(
         onTap: () async {
           final url = Uri.parse(notification.notificationLink);
-          if (await canLaunchUrl(url)) {
+          try {
             await launchUrl(url, mode: LaunchMode.externalApplication);
+          } catch (e) {
+            debugPrint("Could not launch URL: $e");
           }
         },
         child: Padding(
@@ -96,12 +98,17 @@ class PsuCard extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () async {
                     final url = Uri.parse(notification.notificationLink);
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
-                    } else {
-                      if (context.mounted) {
+                    try {
+                      final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+                      if (!launched && context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Could not launch ${notification.notificationLink}')),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Invalid link format!')),
                         );
                       }
                     }
