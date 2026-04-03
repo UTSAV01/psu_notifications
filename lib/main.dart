@@ -5,7 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart'; // The file the CLI just generated!
-import 'screens/notification_feed.dart';
+import 'screens/home_screen.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -59,7 +59,7 @@ class PsuTrackerApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.grey[100],
         textTheme: GoogleFonts.interTextTheme(),
       ),
-      home: const NotificationFeedScreen(),
+      home: const HomeScreen(),
     );
   }
 }

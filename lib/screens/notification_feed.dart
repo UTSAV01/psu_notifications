@@ -4,24 +4,50 @@ import 'package:shimmer/shimmer.dart';
 import '../widgets/psu_card.dart';
 import '../repositories/notification_repository.dart';
 
-class NotificationFeedScreen extends ConsumerWidget {
+class NotificationFeedScreen extends ConsumerStatefulWidget {
   const NotificationFeedScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NotificationFeedScreen> createState() => _NotificationFeedScreenState();
+}
+
+class _NotificationFeedScreenState extends ConsumerState<NotificationFeedScreen> {
+  String _searchQuery = '';
+
+  @override
+  Widget build(BuildContext context) {
     // Watch the real-time stream from Firestore
     final notificationsAsyncValue = ref.watch(notificationsStreamProvider);
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text('PSU Tracker'),
+        title: TextField(
+          decoration: const InputDecoration(
+            hintText: 'Search PSU or Role...',
+            hintStyle: TextStyle(color: Colors.white70),
+            border: InputBorder.none,
+            icon: Icon(Icons.search, color: Colors.white),
+          ),
+          style: const TextStyle(color: Colors.white, fontSize: 18),
+          onChanged: (value) {
+            setState(() {
+              _searchQuery = value.toLowerCase();
+            });
+          },
+        ),
         backgroundColor: Colors.blue[800],
         elevation: 0,
       ),
       body: notificationsAsyncValue.when(
         data: (notifications) {
-          if (notifications.isEmpty) {
+          // Filter logic
+          final filteredList = notifications.where((note) {
+            return note.psuName.toLowerCase().contains(_searchQuery) ||
+                note.role.toLowerCase().contains(_searchQuery);
+          }).toList();
+
+          if (filteredList.isEmpty) {
             return const Center(
               child: Text(
                 'No PSU notifications found.',
@@ -36,9 +62,9 @@ class NotificationFeedScreen extends ConsumerWidget {
             },
             child: ListView.builder(
               padding: const EdgeInsets.all(12.0),
-              itemCount: notifications.length,
+              itemCount: filteredList.length,
               itemBuilder: (context, index) {
-                return PsuCard(notification: notifications[index]);
+                return PsuCard(notification: filteredList[index]);
               },
             ),
           );

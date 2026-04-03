@@ -8,6 +8,9 @@ import pandas as pd
 import logging
 import hashlib
 import requests
+import re
+import json
+import google.generativeai as genai
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
@@ -64,6 +67,10 @@ def fetch_latest_psu_jobs():
             
             # Attempt preliminary scraping logic 
             role_title = "General Recruitment Check"
+            advt_no = "Not Specified"
+            date_posted_str = datetime.datetime.now().strftime("%b %d, %Y")
+            deadline_str = (datetime.datetime.now() + datetime.timedelta(days=15)).strftime("%b %d, %Y")
+            
             try:
                 # Basic web scraping generic fallback
                 headers = {
@@ -77,8 +84,81 @@ def fetch_latest_psu_jobs():
                     extracted_title = soup.title.string.strip()
                     # Keep title length manageable
                     role_title = extracted_title[:97] + "..." if len(extracted_title) > 100 else extracted_title
+
+                # --------- Advanced Generative Text Mining ---------
+                # Extract all visible text from the webpage
+                page_text = soup.get_text(separator=' ', strip=True)
+
+                gemini_key = os.getenv("GEMINI_API_KEY")
+                ai_success = False
+
+                if gemini_key:
+                    try:
+                        genai.configure(api_key=gemini_key)
+                        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+                        prompt = f"""
+                        You are a data extractor. Read this PSU recruitment page text.
+                        Return an exact JSON object perfectly matching this structure:
+                        {{"role": "Extracted Job Role", "advtNo": "Advertisement Number or 'Not Specified'", "datePosted": "DD-MM-YYYY or empty", "deadline": "DD-MM-YYYY or empty"}}
+                        Do not wrap the JSON in markdown blocks. Output only raw JSON.
+                        Page Text: {page_text[:15000]}
+                        """
+                        response = model.generate_content(prompt)
+                        clean_text = response.text.replace('```json', '').replace('```', '').strip()
+                        extracted_data = json.loads(clean_text)
+                        
+                        role_title = extracted_data.get("role", role_title)
+                        advt_no = extracted_data.get("advtNo", advt_no)
+                        
+                        if extracted_data.get("datePosted") and extracted_data["datePosted"] != "empty":
+                            try:
+                                d = datetime.datetime.strptime(extracted_data["datePosted"], "%d-%m-%Y")
+                                date_posted_str = d.strftime("%b %d, %Y")
+                            except: pass
+                        
+                        if extracted_data.get("deadline") and extracted_data["deadline"] != "empty":
+                            try:
+                                d = datetime.datetime.strptime(extracted_data["deadline"], "%d-%m-%Y")
+                                deadline_str = d.strftime("%b %d, %Y")
+                            except: pass
+
+                        ai_success = True
+                        logger.info(f"AI Extracted cleanly: {role_title} for {psu_name}")
+                    except Exception as e:
+                        logger.warning(f"AI Extraction failed for {psu_name}. Falling back to Regex. Error: {e}")
+
+                if not ai_success:
+                    # --------- Fallback Heuristic Text Mining ---------
+                    # 1. Mine Advertisement Number
+                    advt_match = re.search(r'(?:advt|advertisement)\s*\.?\s*no\s*\.?\s*:?\s*([A-Za-z0-9/-]+)', page_text, re.IGNORECASE)
+                    if advt_match:
+                        advt_no = advt_match.group(1).strip()
+
+                    # 2. Mine Dates (Look for standard Indian formats like DD/MM/YYYY or DD-MM-YYYY)
+                    date_matches = re.findall(r'\b(\d{1,2}[-./]\d{1,2}[-./]\d{2,4})\b', page_text)
+                    
+                    valid_dates = []
+                    for d_str in date_matches:
+                        normalized = d_str.replace('/', '-').replace('.', '-')
+                        try:
+                            parsed_date = datetime.datetime.strptime(normalized, "%d-%m-%Y")
+                            if 2020 <= parsed_date.year <= 2030:
+                                valid_dates.append(parsed_date)
+                        except ValueError:
+                            pass 
+
+                    if valid_dates:
+                        valid_dates.sort()
+                        earliest_date = valid_dates[0]
+                        latest_date = valid_dates[-1]
+                        
+                        if earliest_date <= datetime.datetime.now() + datetime.timedelta(days=30):
+                             date_posted_str = earliest_date.strftime("%b %d, %Y")
+                        if latest_date >= datetime.datetime.now():
+                             deadline_str = latest_date.strftime("%b %d, %Y")
+
             except Exception as e:
-                logger.warning(f"Failed to scrape {link} for {psu_name}. Defaulting to generic role. Error: {e}")
+                logger.warning(f"Failed to scrape {link} for {psu_name}. Defaulting to placeholders. Error: {e}")
 
             # Generate deterministic ID using SHA-256 hash of PSU Name, Link, and Role
             unique_string = f"{str(psu_name).strip()}_{str(link).strip()}_{str(role_title).strip()}"
@@ -87,11 +167,12 @@ def fetch_latest_psu_jobs():
             jobs.append({
                 "id": job_id,
                 "psuName": str(psu_name).strip(),
-                "role": role_title, 
+                "role": role_title,
+                "advtNo": advt_no, 
                 "notificationLink": str(link).strip(),
                 "location": "All India",
-                "datePosted": datetime.datetime.now().strftime("%b %d, %Y"),
-                "deadline": (datetime.datetime.now() + datetime.timedelta(days=15)).strftime("%b %d, %Y"),
+                "datePosted": date_posted_str,
+                "deadline": deadline_str,
                 "isStatePsu": False
             })
             

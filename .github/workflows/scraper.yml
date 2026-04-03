@@ -35,6 +35,8 @@ jobs:
         echo "$FIREBASE_SERVICE_ACCOUNT_BASE64" | base64 --decode > backend/serviceAccountKey.json
 
     - name: Execute Scraper
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
         cd backend
         # Ensure the backend knows looking for the decoded key explicitly
